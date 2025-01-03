@@ -121,10 +121,4 @@ For more information, contact the developer at:
 
 ---
 
-## Demo
-
-You can try the app [here](https://github.com/chawit/MOA-Target-Scaler).
-
----
-
 Thank you for using the MOA Target Scaler tool!
