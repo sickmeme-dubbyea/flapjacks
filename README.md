@@ -1,5 +1,9 @@
 # MOA Target Scaler
 
+## Demo
+
+You can try the app [here](https://sickmeme-dubbyea.github.io/flapjacks/final.html).
+
 ## Overview
 
 The **MOA Target Scaler** is a web-based tool that allows users to simulate and generate targets at various distances based on **Minute of Angle (MOA)**. This tool is primarily designed for shooting enthusiasts, trainers, and marksmen to visualize how different targets would appear at various distances, adjusted by their MOA size. The tool allows users to create dynamic targets, view them in context, and download images with simulated targets overlaid on customizable backgrounds.
