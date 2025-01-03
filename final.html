@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MOA Target Scaler</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        .hillside {
+            position: relative;
+            width: 100%;
+            height: 600px;
+            background: linear-gradient(to bottom, #87CEEB, #228B22);
+            overflow: hidden;
+            border: 1px solid #ccc;
+            margin-top: 20px;
+        }
+        .target {
+            position: absolute;
+            cursor: pointer;
+        }
+        .circle {
+            border: 2px solid black;
+            border-radius: 50%;
+            background-color: lightgray;
+        }
+        .triangle {
+            width: 0;
+            height: 0;
+            border-left: 50px solid transparent;
+            border-right: 50px solid transparent;
+            border-bottom: 86.6px solid lightgray;
+            transform: scale(1);
+        }
+        .square {
+            border: 2px solid black;
+            background-color: lightgray;
+        }
+        .diamond {
+            width: 0;
+            height: 0;
+            border: 50px solid transparent;
+            border-bottom: 86.6px solid lightgray;
+            position: relative;
+        }
+        .diamond:after {
+            content: '';
+            position: absolute;
+            top: 86.6px;
+            left: -50px;
+            width: 0;
+            height: 0;
+            border: 50px solid transparent;
+            border-top: 86.6px solid lightgray;
+        }
+        .label {
+            text-align: center;
+            margin-top: 5px;
+            cursor: pointer;
+            color: black;
+            text-shadow: 1px 1px 2px white;
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        .distance-label {
+            font-size: 14px;
+            color: black;
+            text-shadow: 1px 1px 2px white;
+            margin-top: 3px;
+        }
+        .controls {
+            margin-bottom: 20px;
+            background-color: #f5f5f5;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        .hidden {
+            display: none;
+        }
+        .distance-controls {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+        input[type="number"], input[type="file"] {
+            margin: 5px;
+            padding: 5px;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .target-visibility {
+            margin: 10px;
+        }
+        .resize-box {
+            position: absolute;
+            border: 1px dashed #000;
+            background: rgba(255, 255, 255, 0.5);
+            display: none;
+        }
+        .hovered {
+            display: block;
+        }
+        .button-container {
+            display: flex;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>MOA Target Scaler</h1>
+    <div class="controls">
+        <div class="distance-controls">
+            <div>
+                <label for="targetDistance">Scale Reference (yards): </label>
+                <input type="number" id="targetDistance" value="10" min="10" step="1" />
+            </div>
+            <div>
+                <label for="maxRange">Maximum Range (yards): </label>
+                <input type="number" id="maxRange" value="200" min="100" step="1" />
+            </div>
+        </div>
+
+        <label for="targetSets">Number of Target Sets: </label>
+        <input type="number" id="targetSets" value="1" min="1" step="1" />
+
+        <div>
+            <label for="showMoa">Show MOA: </label>
+            <input type="checkbox" id="showMoa" checked />
+        </div>
+
+        <div>
+            <label for="showDistance">Show Distance: </label>
+            <input type="checkbox" id="showDistance" checked />
+        </div>
+
+        <div>
+            <label for="backgroundSelect">Select Background Image: </label>
+            <select id="backgroundSelect">
+                <option value="default">Default Gradient</option>
+                <option value="BobRoss.jpg">BobRoss.jpg</option>
+                <option value="Utah.jpeg">Utah.jpeg</option>
+                <option value="Arizona.jpeg">Arizona.jpeg</option>
+                <option value="desert.jpg">Desert.jpg</option>
+                <option value="waterfall.jpg">Waterfall.jpg</option>
+            </select>
+        </div>
+
+        <label for="backgroundUpload">Upload Custom Background: </label>
+        <input type="file" id="backgroundUpload" accept="image/*" />
+
+        <div>
+            <button onclick="generateTargets()">Generate Targets</button>
+            <button onclick="downloadImage()">Download Image</button>
+        </div>
+
+        <div>
+            <h3>Select Shapes</h3>
+            <input type="checkbox" id="circle" checked /> Circle<br>
+            <input type="checkbox" id="triangle" /> Triangle<br>
+            <input type="checkbox" id="square" /> Square<br>
+            <input type="checkbox" id="diamond" /> Diamond<br>
+        </div>
+
+        <div>
+            <h3>Select MOA</h3>
+            <input type="checkbox" id="moa-0.75" checked /> 0.75 MOA<br>
+            <input type="checkbox" id="moa-1" checked /> 1 MOA<br>
+            <input type="checkbox" id="moa-1.5" checked /> 1.5 MOA<br>
+            <input type="checkbox" id="moa-2" /> 2 MOA<br>
+            <input type="checkbox" id="moa-3" /> 3 MOA<br>
+            <input type="checkbox" id="moa-4" /> 4 MOA<br>
+        </div>
+
+        <!-- Buy Me a Coffee Link -->
+        <div class="button-container">
+            <a href="https://buymeacoffee.com/chawit" target="_blank">
+                <button>Buy Me a Coffee</button>
+            </a>
+        </div>
+    </div>
+
+    <div class="hillside" id="hillside"></div>
+
+    <div class="resize-box" id="resizeBox"></div>
+
+    <!-- Include html2canvas library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
+
+    <script>
+        let generatedTargets = [];
+        let hillsideBackground = 'linear-gradient(to bottom, #87CEEB, #228B22)';
+        let hillsideWidth = 1000; // Default values for image boundary
+        let hillsideHeight = 600;
+
+        // Handle background selection
+        document.getElementById('backgroundSelect').addEventListener('change', function(event) {
+            const selectedImage = event.target.value;
+            const hillside = document.getElementById('hillside');
+            
+            if (selectedImage === "default") {
+                hillsideBackground = 'linear-gradient(to bottom, #87CEEB, #228B22)';
+                hillside.style.backgroundImage = hillsideBackground;
+                hillside.style.width = '100%';
+                hillside.style.height = '600px';
+                hillsideWidth = 1000; // Default image dimensions for gradient
+                hillsideHeight = 600;
+            } else {
+                const img = new Image();
+                img.src = selectedImage;
+                img.onload = function() {
+                    hillsideBackground = `url(${selectedImage})`;
+                    hillsideWidth = img.width;
+                    hillsideHeight = img.height;
+                    hillside.style.backgroundImage = hillsideBackground;
+                    hillside.style.backgroundSize = 'cover';
+                    hillside.style.width = `${hillsideWidth}px`;
+                    hillside.style.height = `${hillsideHeight}px`;
+                };
+            }
+        });
+
+        // Handle background upload
+        document.getElementById('backgroundUpload').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.src = e.target.result;
+                    img.onload = function() {
+                        hillsideBackground = `url(${e.target.result})`;
+                        hillsideWidth = img.width;
+                        hillsideHeight = img.height;
+                        const hillside = document.getElementById('hillside');
+                        hillside.style.backgroundImage = hillsideBackground;
+                        hillside.style.backgroundSize = 'cover';
+                        hillside.style.width = `${hillsideWidth}px`;
+                        hillside.style.height = `${hillsideHeight}px`;
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function generateTargets() {
+            const targetDistance = parseFloat(document.getElementById('targetDistance').value);
+            const maxRange = parseFloat(document.getElementById('maxRange').value);
+            const targetSets = parseInt(document.getElementById('targetSets').value);
+            const showMoa = document.getElementById('showMoa').checked;
+            const showDistance = document.getElementById('showDistance').checked;
+
+            if (targetDistance < 10 || maxRange < 100 || targetSets <= 0) {
+                alert("Please enter valid distances (min 10 yards for target, min 100 yards for max range) and number of target sets.");
+                return;
+            }
+
+            const hillside = document.getElementById('hillside');
+            hillside.innerHTML = '';
+
+            const shapes = [
+                { id: 'circle', className: 'circle' },
+                { id: 'triangle', className: 'triangle' },
+                { id: 'square', className: 'square' },
+                { id: 'diamond', className: 'diamond' }
+            ];
+
+            const moas = [
+                { id: 'moa-0.75', value: 0.75 },
+                { id: 'moa-1', value: 1 },
+                { id: 'moa-1.5', value: 1.5 },
+                { id: 'moa-2', value: 2 },
+                { id: 'moa-3', value: 3 },
+                { id: 'moa-4', value: 4 }
+            ];
+
+            generatedTargets = [];
+
+            // Define the maximum Y placement within the entire height
+            const maxYPlacement = hillsideHeight - 50; // Small margin
+
+            for (let set = 0; set < targetSets; set++) {
+                const randDistance = Math.floor(100 + Math.random() * (maxRange - 100));
+
+                moas.forEach(moa => {
+                    if (!document.getElementById(`moa-${moa.value}`).checked) return;
+
+                    shapes.forEach(shape => {
+                        if (!document.getElementById(shape.id).checked) return;
+
+                        const target = document.createElement('div');
+                        target.classList.add('target');
+                        target.classList.add(shape.className);
+                        const targetSize = moa.value * (randDistance / targetDistance); // Scale the target size
+
+                        // Calculate size of the triangle or diamond based on MOA
+                        if (shape.className === 'triangle') {
+                            const triangleHeight = targetSize * Math.sqrt(3) / 2;
+                            target.style.width = `${targetSize}px`;
+                            target.style.height = `${triangleHeight}px`;
+                        } else if (shape.className === 'diamond') {
+                            const diamondHeight = targetSize * Math.sqrt(3) / 2;
+                            target.style.width = `${targetSize}px`;
+                            target.style.height = `${diamondHeight}px`;
+                        } else {
+                            target.style.width = `${targetSize}px`;
+                            target.style.height = `${targetSize}px`;
+                        }
+
+                        // Random position (X, Y)
+                        const xPos = Math.floor(Math.random() * (hillsideWidth - targetSize));
+                        const yPos = Math.floor(Math.random() * (maxYPlacement));
+                        target.style.left = `${xPos}px`;
+                        target.style.top = `${yPos}px`;
+
+                        if (showMoa) {
+                            const moaLabel = document.createElement('div');
+                            moaLabel.classList.add('label');
+                            moaLabel.innerHTML = `${moa.value} MOA`;
+                            target.appendChild(moaLabel);
+                        }
+
+                        if (showDistance) {
+                            const distanceLabel = document.createElement('div');
+                            distanceLabel.classList.add('distance-label');
+                            distanceLabel.innerHTML = `${randDistance} yards`;
+                            target.appendChild(distanceLabel);
+                        }
+
+                        hillside.appendChild(target);
+                        generatedTargets.push(target);
+                    });
+                });
+            }
+        }
+
+        // Function to download the generated targets as an image
+        function downloadImage() {
+            html2canvas(document.getElementById('hillside')).then(function(canvas) {
+                const link = document.createElement('a');
+                link.download = 'MOA_Targets.png';
+                link.href = canvas.toDataURL();
+                link.click();
+            });
+        }
+    </script>
+</body>
+</html>
+
